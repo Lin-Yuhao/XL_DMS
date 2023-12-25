@@ -141,9 +141,6 @@ class IconCardView(QWidget):
         self.pivot.addItem(routeKey='4', text='4', onClick=lambda: self.filterLayer(4))
         self.pivot.addItem(routeKey='5', text='5', onClick=lambda: self.filterLayer(5))
         self.pivot.addItem(routeKey='6', text='6', onClick=lambda: self.filterLayer(6))
-        # self.pivot.addItem(routeKey='7', text='7', onClick=lambda: self.filterLayer(7))
-        # self.pivot.addItem(routeKey='8', text='8', onClick=lambda: self.filterLayer(8))
-        # self.pivot.addItem(routeKey='9', text='9', onClick=lambda: self.filterLayer(9))
 
         self.__initWidget()
         self.allData()

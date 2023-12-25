@@ -1,6 +1,8 @@
 # coding:utf-8
+import math
+
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
-from PyQt6.QtCore import Qt, QFile
+from PyQt6.QtCore import Qt, QFile, QDateTime
 from PyQt6.QtGui import QPixmap, QColor
 from PyQt6.QtWidgets import QFrame, QMessageBox, QFileDialog
 from openpyxl.styles import Font, Side, Border, Alignment, PatternFill
@@ -28,17 +30,17 @@ class ReportInterface(Ui_Frame, QFrame):
         studentForm.setText('导出学生列表')
         studentForm.clicked.connect(self.__onStudentForm)
 
-        # bedListForm = PushButton(self)
-        # bedListForm.setText('导出宿舍列表')
-        # bedListForm.clicked.connect(self.__onBedListForm)
+        bedListForm = PushButton(self)
+        bedListForm.setText('导出登记名单')
+        bedListForm.clicked.connect(self.__onRosterForm)
 
         self.flowLayout.addWidget(studentForm)
-        # self.flowLayout.addWidget(bedListForm)
+        self.flowLayout.addWidget(bedListForm)
 
         self.__inteWindow()
 
     def __onStudentForm(self):
-        folder = QFileDialog.getSaveFileName(self, "文件保存", "./app/download/学生列表", "Excel工作簿 (*.xlsx)")
+        folder = QFileDialog.getSaveFileName(self, "文件保存", f"./app/download/学生列表-{QDateTime.currentDateTime().toString('yyyy-MM-dd-HH-mm-ss')}", "Excel工作簿 (*.xlsx)")
         if folder[0] != '':
             query = QSqlQuery(self.db)
             wb = Workbook()
@@ -98,50 +100,90 @@ class ReportInterface(Ui_Frame, QFrame):
                     else:
                         break
 
-    def __onBedListForm(self):
-        folder = QFileDialog.getSaveFileName(self, "文件保存", "床位列表", "Excel工作簿 (*.xlsx)")
+    def __onRosterForm(self):
+        folder = QFileDialog.getSaveFileName(self, "文件保存", f"./app/download/登记名单-{QDateTime.currentDateTime().toString('yyyy-MM-dd-HH-mm-ss')}", "Excel工作簿 (*.xlsx)")
         if folder[0] != '':
             query = QSqlQuery(self.db)
             wb = Workbook()
-            ws = wb.active
-            if query.exec("SELECT * FROM students"):
+            wb.remove(wb['Sheet'])
+            students_list = []
+            if query.exec("SELECT id, name, gender, class, dormitory_id FROM students"):
                 while query.next():
-                    ws.append([query.value("id"),
-                               query.value("name"),
-                               query.value("phone"),
-                               query.value("parent_name"),
-                               query.value("parent_phone"),
-                               query.value("gender"),
-                               query.value("class"),
-                               query.value("dormitory_id"),
-                               query.value("bed_number"),
-                               query.value("address"),
-                               query.value("arrival_date")])
+                    students_list.append([query.value("id"),
+                                          query.value("name"),
+                                          query.value("gender"),
+                                          query.value("class"),
+                                          query.value("dormitory_id")])
 
-            for row in ws.iter_rows():
-                for cell in row:
-                    cell.font = Font(name='Calibri', size=14, bold=True)
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
-                    cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-                    cell.fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
-            ws['A1'] = '花名册'
-            ws['A1'].font = Font(name='Calibri', size=28, bold=True)
-            ws.row_dimensions[1].height = 50
+            for i in range(math.ceil(len(students_list)/70)):
+                ws = wb.create_sheet(f'第{i+1}页')
+                wb.active = ws
+                ws.column_dimensions['A'].width = 8
+                ws.column_dimensions['B'].width = 12
+                ws.column_dimensions['C'].width = 8
+                ws.column_dimensions['D'].width = 12
+                ws.column_dimensions['E'].width = 12
+                ws.column_dimensions['F'].width = 8
+                ws.column_dimensions['G'].width = 12
+                ws.column_dimensions['H'].width = 8
+                ws.column_dimensions['I'].width = 12
+                ws.column_dimensions['J'].width = 12
+                ws.merge_cells('A1:J1')
+                ws.append(["序号", "学生姓名", "性别", "班级", "宿舍号",
+                           "序号", "学生姓名", "性别", "班级", "宿舍号"])
+                if len(students_list) > 1:
+                    data = students_list[i*70:(i+1)*70]
+                    mid_point = len(data) // 2
+                    first_half = data[:mid_point]
+                    second_half = data[mid_point:]
+                    new_list = [x for pair in zip(first_half, second_half) for x in pair]
+                    for sublist in [new_list[i:i + 2] for i in range(0, len(new_list), 2)]:
+                        if len(sublist) == 2:
+                            ws.append(sublist[0] + sublist[1])
+                        else:
+                            ws.append(sublist[0])
+                else:
+                    ws.append(students_list[0])
 
-            try:
-                wb.save(folder[0])
-            except:
-                while True:
-                    w = MessageBox('文件无法处理', '请关闭文件后重试', self)
-                    w.yesButton.setText('重试')
-                    if w.exec():
-                        try:
-                            wb.save(folder[0])
+                for row in ws.iter_rows():
+                    for cell in row:
+                        cell.font = Font(name='Calibri', size=14, bold=True)
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+                        cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+                ws['A1'] = '内宿生登记名单'
+                ws['A1'].font = Font(name='Calibri', size=28, bold=True)
+                ws['A1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['B1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['C1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['D1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['E1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['F1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['G1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['H1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['I1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws['J1'].border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                ws.row_dimensions[1].height = 50
+            if len(students_list) != 0:
+                wb.active = wb['第1页']
+                try:
+                    wb.save(folder[0])
+                except:
+                    while True:
+                        w = MessageBox('文件无法处理', '请关闭文件后重试', self)
+                        w.yesButton.setText('重试')
+                        if w.exec():
+                            try:
+                                wb.save(folder[0])
+                                break
+                            except:
+                                w.exec()
+                        else:
                             break
-                        except:
-                            w.exec()
-                    else:
-                        break
+            else:
+                w = MessageBox('无数据', '请添加数据后再导出', self)
+                if w.exec():
+                    pass
 
     def __inteWindow(self):
         self.PixmapLabel_Room.setPixmap(QPixmap(':/gallery/images/Room.png').scaled(
