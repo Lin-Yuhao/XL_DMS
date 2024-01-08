@@ -23,13 +23,13 @@ class SettingInterface(ScrollArea):
         # personalization
         self.personalGroup = SettingCardGroup(
             self.tr('Personalization'), self.scrollWidget)
-        self.micaCard = SwitchSettingCard(
-            FIF.TRANSPARENT,
-            self.tr('Mica effect'),
-            self.tr('Apply semi transparent to windows and surfaces'),
-            cfg.micaEnabled,
-            self.personalGroup
-        )
+        # self.micaCard = SwitchSettingCard(
+        #     FIF.TRANSPARENT,
+        #     self.tr('Mica effect'),
+        #     self.tr('Apply semi transparent to windows and surfaces'),
+        #     cfg.micaEnabled,
+        #     self.personalGroup
+        # )
         self.themeCard = OptionsSettingCard(
             cfg.themeMode,
             FIF.BRUSH,
@@ -74,7 +74,7 @@ class SettingInterface(ScrollArea):
         self.scrollWidget.setObjectName('scrollWidget')
         StyleSheet.SETTING_INTERFACE.apply(self)
 
-        self.micaCard.setEnabled(isWin11())
+        # self.micaCard.setEnabled(isWin11())
 
         # initialize layout
         self.__initLayout()
@@ -82,7 +82,7 @@ class SettingInterface(ScrollArea):
 
     def __initLayout(self):
 
-        self.personalGroup.addSettingCard(self.micaCard)
+        # self.personalGroup.addSettingCard(self.micaCard)
         self.personalGroup.addSettingCard(self.themeCard)
         self.personalGroup.addSettingCard(self.themeColorCard)
         self.personalGroup.addSettingCard(self.zoomCard)
@@ -108,4 +108,4 @@ class SettingInterface(ScrollArea):
         # personalization
         self.themeCard.optionChanged.connect(lambda ci: setTheme(cfg.get(ci)))
         self.themeColorCard.colorChanged.connect(setThemeColor)
-        self.micaCard.checkedChanged.connect(signalBus.micaEnableChanged)
+        # self.micaCard.checkedChanged.connect(signalBus.micaEnableChanged)

@@ -34,8 +34,13 @@ class ReportInterface(Ui_Frame, QFrame):
         bedListForm.setText('导出登记名单')
         bedListForm.clicked.connect(self.__onRosterForm)
 
+        lookupTable = PushButton(self)
+        lookupTable.setText('导出查宿表')
+        lookupTable.clicked.connect(self.__onLookupTable)
+
         self.flowLayout.addWidget(studentForm)
         self.flowLayout.addWidget(bedListForm)
+        self.flowLayout.addWidget(lookupTable)
 
         self.__inteWindow()
 
@@ -184,6 +189,92 @@ class ReportInterface(Ui_Frame, QFrame):
                 w = MessageBox('无数据', '请添加数据后再导出', self)
                 if w.exec():
                     pass
+
+    def __onLookupTable(self):
+        folder = QFileDialog.getSaveFileName(self, "文件保存", f"./app/download/查宿表-{QDateTime.currentDateTime().toString('yyyy-MM-dd-HH-mm-ss')}", "Excel工作簿 (*.xlsx)")
+        if folder[0] != '':
+            query = QSqlQuery(self.db)
+            wb = Workbook()
+            wb.remove(wb['Sheet'])
+
+            if query.exec("SELECT dormitory_name, bed_number FROM dormitories"):
+                while query.next():
+                    ws = wb.create_sheet(f'{query.value(0)}宿舍')
+                    wb.active = ws
+
+                    ws.column_dimensions['A'].width = 4
+                    ws.column_dimensions['B'].width = 10
+                    ws.column_dimensions['C'].width = 10
+                    ws.column_dimensions['D'].width = 16
+                    ws.column_dimensions['E'].width = 16
+                    ws.column_dimensions['F'].width = 3
+                    ws.column_dimensions['G'].width = 3
+                    ws.column_dimensions['H'].width = 3
+                    ws.column_dimensions['I'].width = 3
+                    ws.column_dimensions['J'].width = 3
+                    ws.column_dimensions['K'].width = 3
+                    ws.column_dimensions['L'].width = 3
+                    ws.column_dimensions['M'].width = 3
+                    ws.column_dimensions['N'].width = 3
+                    ws.column_dimensions['O'].width = 3
+                    ws.column_dimensions['P'].width = 3
+                    ws.column_dimensions['Q'].width = 3
+                    ws.column_dimensions['R'].width = 3
+                    ws.column_dimensions['S'].width = 3
+                    ws.column_dimensions['T'].width = 3
+                    ws.column_dimensions['U'].width = 3
+                    ws.column_dimensions['V'].width = 3
+                    ws.column_dimensions['W'].width = 3
+                    ws.column_dimensions['X'].width = 3
+                    ws.column_dimensions['Y'].width = 3
+                    ws.column_dimensions['Z'].width = 3
+                    ws.column_dimensions['AA'].width = 3
+                    ws.column_dimensions['AB'].width = 3
+                    ws.column_dimensions['AC'].width = 3
+                    ws.merge_cells('A1:AC1')
+
+                    ws['A1'] = f'2023秋季({query.value(0)})宿舍查宿登记表)'
+                    ws.append(['序号', '姓名', '年级', '学生电话', '家长电话',
+                               '日', '一', '二', '三', '四', '五',
+                               '日', '一', '二', '三', '四', '五',
+                               '日', '一', '二', '三', '四', '五',
+                               '日', '一', '二', '三', '四', '五'])
+
+                    lookupQuery = QSqlQuery(self.db)
+                    if lookupQuery.exec(f"SELECT id, name, class, phone, parent_phone FROM students WHERE dormitory_id = '{query.value(0)}'"):
+                        nub = 0
+                        while lookupQuery.next():
+                            nub += 1
+                            ws.append([lookupQuery.value("id"),
+                                       lookupQuery.value("name"),
+                                       lookupQuery.value("class"),
+                                       lookupQuery.value("phone"),
+                                       lookupQuery.value("parent_phone")])
+                        ws.merge_cells(f'A{nub+3}:AC{nub+3}')
+                        ws[f'A{nub+3}'] = '正常√   晚归○   请假Ø                 负责人签名:'
+
+                    for row in ws.iter_rows():
+                        for cell in row:
+                            cell.font = Font(name='Calibri', size=12, bold=True)
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                            cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+                            cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+                    ws['A1'].font = Font(name='Calibri', size=28, bold=True)
+
+            try:
+                wb.save(folder[0])
+            except:
+                while True:
+                    w = MessageBox('文件无法处理', '请关闭文件后重试', self)
+                    w.yesButton.setText('重试')
+                    if w.exec():
+                        try:
+                            wb.save(folder[0])
+                            break
+                        except:
+                            w.exec()
+                    else:
+                        break
 
     def __inteWindow(self):
         self.PixmapLabel_Room.setPixmap(QPixmap(':/gallery/images/Room.png').scaled(
