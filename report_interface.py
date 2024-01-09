@@ -2,11 +2,11 @@
 import math
 
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
-from PyQt6.QtCore import Qt, QFile, QDateTime
+from PyQt6.QtCore import Qt, QFile, QDateTime, QDate
 from PyQt6.QtGui import QPixmap, QColor
 from PyQt6.QtWidgets import QFrame, QMessageBox, QFileDialog
 from openpyxl.styles import Font, Side, Border, Alignment, PatternFill
-from qfluentwidgets import FlowLayout, PushButton, MessageBox
+from qfluentwidgets import FlowLayout, PushButton, MessageBox, setCustomStyleSheet
 from qfluentwidgets import FluentIcon as FIF
 from ..UI.DormitoryReport import Ui_Frame
 from openpyxl import Workbook
@@ -187,6 +187,12 @@ class ReportInterface(Ui_Frame, QFrame):
                             break
             else:
                 w = MessageBox('无数据', '请添加数据后再导出', self)
+                qss = '''
+                                        PushButton{background-color: #E53935; border-color: #E53935; color: #FFFFFF}
+                                        PushButton::hover{background-color: #EF5350; border-color: #EF5350}
+                                        '''
+                setCustomStyleSheet(w.yesButton, qss, qss)
+                w.cancelButton.hide()
                 if w.exec():
                     pass
 
@@ -197,8 +203,14 @@ class ReportInterface(Ui_Frame, QFrame):
             wb = Workbook()
             wb.remove(wb['Sheet'])
 
+            year = QDate.currentDate().toString("yyyy")
+            moon = QDate.currentDate().toString("MM")
+            entry = []
+
             if query.exec("SELECT dormitory_name, bed_number FROM dormitories"):
-                while query.next():
+                queryNext = query.next()
+                while queryNext:
+                    entry.append(queryNext)
                     ws = wb.create_sheet(f'{query.value(0)}宿舍')
                     wb.active = ws
 
@@ -233,7 +245,11 @@ class ReportInterface(Ui_Frame, QFrame):
                     ws.column_dimensions['AC'].width = 3
                     ws.merge_cells('A1:AC1')
 
-                    ws['A1'] = f'2023秋季({query.value(0)})宿舍查宿登记表)'
+                    if int(moon) < 6:
+                        ws['A1'] = f'{year}春季({query.value(0)})宿舍查宿登记表)'
+                    else:
+                        ws['A1'] = f'{year}秋季({query.value(0)})宿舍查宿登记表)'
+
                     ws.append(['序号', '姓名', '年级', '学生电话', '家长电话',
                                '日', '一', '二', '三', '四', '五',
                                '日', '一', '二', '三', '四', '五',
@@ -241,17 +257,17 @@ class ReportInterface(Ui_Frame, QFrame):
                                '日', '一', '二', '三', '四', '五'])
 
                     lookupQuery = QSqlQuery(self.db)
-                    if lookupQuery.exec(f"SELECT id, name, class, phone, parent_phone FROM students WHERE dormitory_id = '{query.value(0)}'"):
+                    if lookupQuery.exec(f"SELECT name, class, phone, parent_phone FROM students WHERE dormitory_id = '{query.value(0)}'"):
                         nub = 0
                         while lookupQuery.next():
                             nub += 1
-                            ws.append([lookupQuery.value("id"),
+                            ws.append([nub,
                                        lookupQuery.value("name"),
                                        lookupQuery.value("class"),
                                        lookupQuery.value("phone"),
                                        lookupQuery.value("parent_phone")])
                         ws.merge_cells(f'A{nub+3}:AC{nub+3}')
-                        ws[f'A{nub+3}'] = '正常√   晚归○   请假Ø                 负责人签名:'
+                        ws[f'A{nub+3}'] = '正常√   晚归○   未到×   请假Ø                 负责人签名:'
 
                     for row in ws.iter_rows():
                         for cell in row:
@@ -260,21 +276,33 @@ class ReportInterface(Ui_Frame, QFrame):
                             cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
                             cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
                     ws['A1'].font = Font(name='Calibri', size=28, bold=True)
+                    queryNext = query.next()
 
-            try:
-                wb.save(folder[0])
-            except:
-                while True:
-                    w = MessageBox('文件无法处理', '请关闭文件后重试', self)
-                    w.yesButton.setText('重试')
-                    if w.exec():
-                        try:
-                            wb.save(folder[0])
+            if len(entry) > 0:
+                try:
+                    wb.save(folder[0])
+                except:
+                    while True:
+                        w = MessageBox('文件无法处理', '请关闭文件后重试', self)
+                        w.yesButton.setText('重试')
+                        if w.exec():
+                            try:
+                                wb.save(folder[0])
+                                break
+                            except:
+                                w.exec()
+                        else:
                             break
-                        except:
-                            w.exec()
-                    else:
-                        break
+            else:
+                w = MessageBox('无数据', '请添加数据后再导出', self)
+                qss = '''
+                        PushButton{background-color: #E53935; border-color: #E53935; color: #FFFFFF}
+                        PushButton::hover{background-color: #EF5350; border-color: #EF5350}
+                        '''
+                setCustomStyleSheet(w.yesButton, qss, qss)
+                w.cancelButton.hide()
+                if w.exec():
+                    pass
 
     def __inteWindow(self):
         self.PixmapLabel_Room.setPixmap(QPixmap(':/gallery/images/Room.png').scaled(

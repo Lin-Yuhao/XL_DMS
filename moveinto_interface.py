@@ -144,7 +144,6 @@ class MoveIntoManage(Ui_Frame, QFrame):
             stayDays = self.model.index(index.row(), 9).data()
             qDateStayDays = QDate.fromString(stayDays, Qt.DateFormat.ISODate).daysTo(CP.getDate())
             transfer_query.bindValue(":stayDays", qDateStayDays)
-
             if transfer_query.exec():
                 delete_query = QSqlQuery()
                 delete_query.prepare("DELETE FROM students WHERE id = :student_id;")
@@ -235,7 +234,13 @@ class MoveIntoManage(Ui_Frame, QFrame):
     def tableViewRemoveRow(self, index):
         tip = MessageBox(f'学生删除：{self.model.index(index.row(), 0).data()}', '', self)
         tip.contentLabel.hide()
+        qss = '''
+                            PushButton{background-color: #E53935; border-color: #E53935; color: #FFFFFF}
+                            PushButton::hover{background-color: #EF5350; border-color: #EF5350}
+                            '''
+        setCustomStyleSheet(tip.yesButton, qss, qss)
         if tip.exec():
+
             logging.info(f'学生删除 - {self.model.index(index.row(), 6).data()} - {self.model.index(index.row(), 0).data()}')
             self.parent().parent().parent().dormitoryReportInterface.loadText()
             dormitory_name = index.model().index(index.row(), 6).data()
